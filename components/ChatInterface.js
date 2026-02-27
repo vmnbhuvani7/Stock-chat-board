@@ -23,7 +23,7 @@ export default function ChatInterface({ chatId }) {
     // Load user name and chat messages from localStorage
     const name = localStorage.getItem('userName');
     const chatHistory = localStorage.getItem('chatHistory');
-    
+
     if (name) setUserName(name);
     if (chatHistory) {
       const history = JSON.parse(chatHistory);
@@ -37,7 +37,7 @@ export default function ChatInterface({ chatId }) {
   const saveMessagesToStorage = (updatedMessages) => {
     const chatHistory = localStorage.getItem('chatHistory');
     let history = chatHistory ? JSON.parse(chatHistory) : [];
-    
+
     const chatIndex = history.findIndex(chat => chat.id === chatId);
     if (chatIndex >= 0) {
       history[chatIndex].messages = updatedMessages;
@@ -50,14 +50,13 @@ export default function ChatInterface({ chatId }) {
         messages: updatedMessages
       });
     }
-    
+
     localStorage.setItem('chatHistory', JSON.stringify(history));
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-
     const userMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -68,24 +67,50 @@ export default function ChatInterface({ chatId }) {
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     saveMessagesToStorage(updatedMessages);
-    
+
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    await fetch('/api/chat', {
+      method: "POST",
+      body: JSON.stringify({
+        messages: input.trim()
+      }),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }).then((res) => res.json()).then((data) => {
       const aiResponse = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Hello ${userName || 'User'}! I'm here to help you with your questions. What would you like to know about today?`,
+        content: data?.content,
         timestamp: new Date().toISOString()
       };
-      
+
       const finalMessages = [...updatedMessages, aiResponse];
       setMessages(finalMessages);
       saveMessagesToStorage(finalMessages);
       setIsLoading(false);
-    }, 1500);
+    }).catch((error) => {
+      console.error('Error fetching AI response:', error);
+      setIsLoading(false);
+    });
+
+
+    // Simulate AI response
+    // setTimeout(() => {
+    //   const aiResponse = {
+    //     id: (Date.now() + 1).toString(),
+    //     role: 'assistant',
+    //     content: `Hello ${userName || 'User'}! I'm here to help you with your questions. What would you like to know about today?`,
+    //     timestamp: new Date().toISOString()
+    //   };
+
+    //   const finalMessages = [...updatedMessages, aiResponse];
+    //   setMessages(finalMessages);
+    //   saveMessagesToStorage(finalMessages);
+    //   setIsLoading(false);
+    // }, 1500);
   };
 
   return (
@@ -107,7 +132,7 @@ export default function ChatInterface({ chatId }) {
                 <p className="text-xs text-gray-400">vmn.scalelam@gmail.com</p>
               </div>
             </div>
-            <button 
+            <button
               onClick={() => {
                 localStorage.removeItem('isAuthenticated');
                 localStorage.removeItem('userEmail');
@@ -135,7 +160,7 @@ export default function ChatInterface({ chatId }) {
                 </div>
               </div>
             </div>
-            
+
             <h2 className="text-3xl font-bold text-white mb-4">
               Hello {userName || 'vmn'}! How can I help you today?
             </h2>
@@ -151,11 +176,10 @@ export default function ChatInterface({ chatId }) {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-2xl px-6 py-4 rounded-2xl ${
-                    message.role === 'user'
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-800 text-gray-100 border border-gray-700'
-                  }`}
+                  className={`max-w-2xl px-6 py-4 rounded-2xl ${message.role === 'user'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-800 text-gray-100 border border-gray-700'
+                    }`}
                 >
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 </div>

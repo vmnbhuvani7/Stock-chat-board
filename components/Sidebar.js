@@ -15,7 +15,7 @@ export default function Sidebar({ currentChatId }) {
     const email = localStorage.getItem('userEmail');
     const name = localStorage.getItem('userName');
     const history = localStorage.getItem('chatHistory');
-    
+
     if (email) setUserEmail(email);
     if (name) setUserName(name);
     if (history) {
@@ -31,7 +31,7 @@ export default function Sidebar({ currentChatId }) {
       timestamp: new Date().toISOString(),
       messages: []
     };
-    
+
     const updatedHistory = [newChat, ...chatHistory];
     setChatHistory(updatedHistory);
     localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
@@ -45,13 +45,13 @@ export default function Sidebar({ currentChatId }) {
   const deleteChat = (chatId, e) => {
     console.log("🚀 ~ deleteChat ~ chatId:", chatId)
     e.stopPropagation();
-    
+
     const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
     console.log("🚀 ~ deleteChat ~ chatHistory:", chatHistory)
     console.log("🚀 ~ deleteChat ~ updatedHistory:", updatedHistory)
     setChatHistory(updatedHistory);
     localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
-    
+    router.push(`/chat`);
     // If current chat is deleted, redirect to new chat
     // if (currentChatId === chatId) {
     //   createNewChat();
@@ -81,7 +81,7 @@ export default function Sidebar({ currentChatId }) {
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) return 'Today';
     if (diffDays === 2) return 'Yesterday';
     if (diffDays <= 7) return `${diffDays - 1} days ago`;
@@ -98,7 +98,7 @@ export default function Sidebar({ currentChatId }) {
             <span className="font-semibold text-lg">AI Assistant</span>
           </div>
         </div>
-        
+
         <button
           onClick={createNewChat}
           className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg flex items-center justify-center transition duration-200 font-medium"
@@ -116,14 +116,13 @@ export default function Sidebar({ currentChatId }) {
           {chatHistory.map((chat) => (
             <div
               key={chat.id}
-              className={`group relative rounded-lg transition duration-200 ${
-                currentChatId === chat.id
+              className={`group relative rounded-lg transition duration-200 ${currentChatId === chat.id
                   ? 'bg-gray-800'
                   : 'hover:bg-gray-800'
-              }`}
+                }`}
             >
               <div className="flex items-start justify-between p-3 rounded-lg">
-                <div 
+                <div
                   onClick={() => handleChatClick(chat.id)}
                   className="flex items-start flex-1 min-w-0 cursor-pointer"
                 >

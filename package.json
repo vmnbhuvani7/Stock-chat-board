@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@ai-sdk/mistral": "^3.0.20",
     "@ai-sdk/react": "^3.0.105",
     "@next/font": "^14.2.15",
     "ai": "^6.0.103",
