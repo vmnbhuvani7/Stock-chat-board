@@ -95,22 +95,15 @@ export default function ChatInterface({ chatId }) {
       console.error('Error fetching AI response:', error);
       setIsLoading(false);
     });
+  };
 
+  const handleInputChange = (e) => {
+    setInput(e.target.value);
+  };
 
-    // Simulate AI response
-    // setTimeout(() => {
-    //   const aiResponse = {
-    //     id: (Date.now() + 1).toString(),
-    //     role: 'assistant',
-    //     content: `Hello ${userName || 'User'}! I'm here to help you with your questions. What would you like to know about today?`,
-    //     timestamp: new Date().toISOString()
-    //   };
-
-    //   const finalMessages = [...updatedMessages, aiResponse];
-    //   setMessages(finalMessages);
-    //   saveMessagesToStorage(finalMessages);
-    //   setIsLoading(false);
-    // }, 1500);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // useChat will handle the submission
   };
 
   return (
@@ -202,12 +195,11 @@ export default function ChatInterface({ chatId }) {
 
       {/* Input */}
       <div className="px-8 py-6">
-        <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto">
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
           <div className="flex items-center space-x-4">
             <input
-              type="text"
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleInputChange}
               placeholder="Type your message..."
               className="flex-1 px-6 py-4 bg-gray-800 border border-gray-700 rounded-full text-white placeholder-gray-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200"
               disabled={isLoading}

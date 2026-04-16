@@ -40,6 +40,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning={true}
       >
         {isLoading ? (
           <div className="min-h-screen flex items-center justify-center bg-gray-900">
