@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, User } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
+import ReactMarkdown from 'react-markdown';
 
 export default function ChatInterface({ chatId }) {
   const { messages, status, error, sendMessage } = useChat({
@@ -21,26 +22,17 @@ export default function ChatInterface({ chatId }) {
     },
     onError: e => console.error("inside error 22", e),
   })
-  console.log("🚀 ~ ChatInterface ~ status, error:", status, error)
-
-  console.log("messages:", messages);
-  // const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  console.log("input:", input);
-
-  // const [isLoading, setIsLoading] = useState(false);
-  const [userName, setUserName] = useState('');
   const messagesEndRef = useRef(null);
   const isLoading = status === 'submitted' || status === 'streaming';
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-  // const scrollToBottom = () => {
-  //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  // };
-
-  // useEffect(() => {
-  //   scrollToBottom();
-  // }, [messages]);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // useEffect(() => {
   //   // Load user name and chat messages from localStorage
@@ -153,7 +145,7 @@ export default function ChatInterface({ chatId }) {
                 <User className="w-5 h-5 text-white" />
               </div>
               <div className="text-right">
-                <p className="text-sm font-medium text-white">{userName || 'User'}</p>
+                <p className="text-sm font-medium text-white">{'User'}</p>
                 <p className="text-xs text-gray-400">vmn.scalelam@gmail.com</p>
               </div>
             </div>
@@ -187,7 +179,7 @@ export default function ChatInterface({ chatId }) {
             </div>
 
             <h2 className="text-3xl font-bold text-white mb-4">
-              Hello {userName || 'vmn'}! How can I help you today?
+              Hello Vmn! How can I help you today?
             </h2>
             <p className="text-gray-400 text-lg max-w-md mx-auto">
               Ask me anything, I'm here to assist you with your questions.
@@ -195,21 +187,49 @@ export default function ChatInterface({ chatId }) {
           </div>
         ) : (
           <div className="space-y-6 max-w-4xl mx-auto">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+            {messages.map((message) => {
+              // Handle both direct content and parts array structure
+              let messageContent = message?.content;
+
+              if (message?.parts && Array.isArray(message?.parts)) {
+                const textPart = message?.parts.find(part => part.type === 'text');
+                if (textPart && textPart.text) {
+                  messageContent = textPart.text;
+                }
+              }
+
+              return (
                 <div
-                  className={`max-w-2xl px-6 py-4 rounded-2xl ${message.role === 'user'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-800 text-gray-100 border border-gray-700'
-                    }`}
+                  key={message?.id}
+                  className={`flex ${message?.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  <div
+                    className={`max-w-2xl px-6 py-4 rounded-2xl ${message?.role === 'user'
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-800 text-gray-100 border border-gray-700'
+                      }`}
+                  >
+                    <ReactMarkdown
+                      // className="whitespace-pre-wrap prose prose-invert max-w-none"
+                      components={{
+                        p: ({ children }) => <p className="text-gray-100 mb-2">{children}</p>,
+                        strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 text-gray-100">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 text-gray-100">{children}</ol>,
+                        li: ({ children }) => <li className="mb-1">{children}</li>,
+                        code: ({ inline, children }) =>
+                          inline
+                            ? <code className="bg-gray-700 px-1 py-0.5 rounded text-green-400 text-sm">{children}</code>
+                            : <code className="block bg-gray-700 p-2 rounded text-green-400 text-sm overflow-x-auto">{children}</code>,
+                        pre: ({ children }) => <pre className="bg-gray-800 p-3 rounded-lg overflow-x-auto mb-2">{children}</pre>,
+                      }}
+                    >
+                      {messageContent}
+                    </ReactMarkdown>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-gray-800 border border-gray-700 rounded-2xl px-6 py-4">

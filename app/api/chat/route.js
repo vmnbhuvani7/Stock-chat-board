@@ -24,14 +24,58 @@ const getFallbackResponse = (userMessage) => {
   }
 };
 
-export async function POST(request, res) {
-  const { messages } = await request.json();
-  console.log("🚀 ~ POST ~ messages:", messages)
-  const result = streamText({
-    model: mistral('mistral-large-latest'),
-    messages,
-  });
-  return result.toUIMessageStreamResponse();
+export async function POST(request) {
+  try {
+    const { messages } = await request.json();
+
+    // Convert messages with parts array to standard format
+    const formattedMessages = messages?.map(msg => {
+      if (msg?.parts && Array.isArray(msg?.parts)) {
+        const textPart = msg?.parts.find(part => part.type === 'text');
+        return {
+          id: msg?.id,
+          role: msg?.role,
+          content: textPart?.text || msg?.content || ''
+        };
+      }
+      return {
+        id: msg?.id,
+        role: msg?.role,
+        content: msg?.content || ''
+      };
+    });
+
+    console.log("🚀 ~ formattedMessages:", formattedMessages);
+
+    const result = streamText({
+      model: mistral('mistral-large-latest'),
+      messages: formattedMessages,
+    });
+    
+    return result.toUIMessageStreamResponse();
+
+  } catch (error) {
+    console.error('Chat API Error:', error);
+    
+    // Use fallback response when API fails
+    const lastMessage = messages[messages.length - 1];
+    let userMessage = '';
+    
+    if (lastMessage) {
+      if (lastMessage.parts && Array.isArray(lastMessage.parts)) {
+        const textPart = lastMessage.parts.find(part => part.type === 'text');
+        userMessage = textPart?.text || '';
+      } else {
+        userMessage = lastMessage.content || '';
+      }
+    }
+    
+    const fallbackResponse = getFallbackResponse(userMessage);
+    
+    return new Response(fallbackResponse, {
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
 }
 
 // export async function POST(request) {
