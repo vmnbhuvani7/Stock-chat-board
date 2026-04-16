@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { generateText } from 'ai';
+import { generateText, streamText } from 'ai';
 import { createMistral } from '@ai-sdk/mistral';
 
 const mistral = createMistral({
@@ -25,55 +24,62 @@ const getFallbackResponse = (userMessage) => {
   }
 };
 
-export async function POST(request) {
-  console.log("🚀 ~ POST ~ request:", request)
-  try {
-    const { messages } = await request.json();
-    console.log("🚀 ~ POST ~ messages:", messages)
-
-    // Get the last user message for fallback
-    const lastMessage = messages[messages.length - 1];
-    const userMessage = lastMessage?.content || '';
-
-    try {
-      // Ensure messages is in the correct format for Mistral
-      const formattedMessages = [{ role: 'user', content: messages }];
-
-
-      // Try to generate AI response using Mistral
-      const { text } = await generateText({
-        model: mistral('mistral-large-latest'),
-        messages: formattedMessages,
-        maxTokens: 1000,
-        temperature: 0.7,
-      });
-
-      // stream text , react markdown
-      console.log('AI Response:', text);
-
-      return NextResponse.json({
-        role: 'assistant',
-        content: text
-      });
-
-    } catch (apiError) {
-      console.error('Mistral API Error:', apiError);
-
-      // Use fallback response when API fails
-      console.log('Using fallback response due to API error');
-      const fallbackResponse = getFallbackResponse(userMessage);
-
-      return NextResponse.json({
-        role: 'assistant',
-        content: fallbackResponse
-      });
-    }
-
-  } catch (error) {
-    console.error('Chat API Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process message', details: error.message },
-      { status: 500 }
-    );
-  }
+export async function POST(request, res) {
+  const { messages } = await request.json();
+  console.log("🚀 ~ POST ~ messages:", messages)
+  const result = streamText({
+    model: mistral('mistral-large-latest'),
+    messages,
+  });
+  return result.toUIMessageStreamResponse();
 }
+
+// export async function POST(request) {
+//   try {
+//     const { messages } = await request.json();
+
+//     // Get the last user message for fallback
+//     const lastMessage = messages[messages.length - 1];
+//     const userMessage = lastMessage?.content || '';
+//     try {
+//       // Ensure messages is in the correct format for Mistral
+//       const formattedMessages = [{ role: 'user', content: messages }];
+
+
+//       // Try to generate AI response using Mistral
+//       const { text } = await generateText({
+//         model: mistral('mistral-large-latest'),
+//         messages: formattedMessages,
+//         maxTokens: 1000,
+//         temperature: 0.7,
+//       });
+
+//       // stream text , react markdown
+//       console.log('AI Response:', text);
+
+//       return NextResponse.json({
+//         role: 'assistant',
+//         content: text
+//       });
+
+//     } catch (apiError) {
+//       console.error('Mistral API Error:', apiError);
+
+//       // Use fallback response when API fails
+//       console.log('Using fallback response due to API error');
+//       const fallbackResponse = getFallbackResponse(userMessage);
+
+//       return NextResponse.json({
+//         role: 'assistant',
+//         content: fallbackResponse
+//       });
+//     }
+
+//   } catch (error) {
+//     console.error('Chat API Error:', error);
+//     return NextResponse.json(
+//       { error: 'Failed to process message', details: error.message },
+//       { status: 500 }
+//     );
+//   }
+// }

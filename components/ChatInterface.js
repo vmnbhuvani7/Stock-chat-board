@@ -5,106 +5,138 @@ import { Send, User } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
 
 export default function ChatInterface({ chatId }) {
-  const [messages, setMessages] = useState([]);
+  const { messages, status, error, sendMessage } = useChat({
+    api: '/api/chat',
+    id: chatId || undefined,
+    // body: {
+    //   resourceId: 'anonymous',
+    //   // resourceId: currentUser?.id || 'anonymous',
+    // },
+    onFinish: async () => {
+      window.dispatchEvent(new Event('chatHistoryUpdated'))
+      // if (!hasRoutedRef.current && chatIdRef.current) {
+      //   hasRoutedRef.current = true
+      //   router.replace(/chat/${chatIdRef.current})
+      // }
+    },
+    onError: e => console.error("inside error 22", e),
+  })
+  console.log("🚀 ~ ChatInterface ~ status, error:", status, error)
+
+  console.log("messages:", messages);
+  // const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  console.log("input:", input);
+
+  // const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState('');
   const messagesEndRef = useRef(null);
+  const isLoading = status === 'submitted' || status === 'streaming';
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // const scrollToBottom = () => {
+  //   messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  // };
 
-  useEffect(() => {
-    // Load user name and chat messages from localStorage
-    const name = localStorage.getItem('userName');
-    const chatHistory = localStorage.getItem('chatHistory');
+  // useEffect(() => {
+  //   scrollToBottom();
+  // }, [messages]);
 
-    if (name) setUserName(name);
-    if (chatHistory) {
-      const history = JSON.parse(chatHistory);
-      const currentChat = history.find(chat => chat.id === chatId);
-      if (currentChat) {
-        setMessages(currentChat.messages || []);
-      }
-    }
-  }, [chatId]);
+  // useEffect(() => {
+  //   // Load user name and chat messages from localStorage
+  //   const name = localStorage.getItem('userName');
+  //   const chatHistory = localStorage.getItem('chatHistory');
 
-  const saveMessagesToStorage = (updatedMessages) => {
-    const chatHistory = localStorage.getItem('chatHistory');
-    let history = chatHistory ? JSON.parse(chatHistory) : [];
+  //   if (name) setUserName(name);
+  //   if (chatHistory) {
+  //     const history = JSON.parse(chatHistory);
+  //     const currentChat = history.find(chat => chat.id === chatId);
+  //     if (currentChat) {
+  //       setMessages(currentChat.messages || []);
+  //     }
+  //   }
+  // }, [chatId]);
 
-    const chatIndex = history.findIndex(chat => chat.id === chatId);
-    if (chatIndex >= 0) {
-      history[chatIndex].messages = updatedMessages;
-      history[chatIndex].timestamp = new Date().toISOString();
-    } else {
-      history.unshift({
-        id: chatId,
-        title: updatedMessages.length > 0 ? updatedMessages[0].content.substring(0, 30) + '...' : 'New Chat',
-        timestamp: new Date().toISOString(),
-        messages: updatedMessages
-      });
-    }
+  // const saveMessagesToStorage = (updatedMessages) => {
+  //   const chatHistory = localStorage.getItem('chatHistory');
+  //   let history = chatHistory ? JSON.parse(chatHistory) : [];
 
-    localStorage.setItem('chatHistory', JSON.stringify(history));
-  };
+  //   const chatIndex = history.findIndex(chat => chat.id === chatId);
+  //   if (chatIndex >= 0) {
+  //     history[chatIndex].messages = updatedMessages;
+  //     history[chatIndex].timestamp = new Date().toISOString();
+  //   } else {
+  //     history.unshift({
+  //       id: chatId,
+  //       title: updatedMessages.length > 0 ? updatedMessages[0].content.substring(0, 30) + '...' : 'New Chat',
+  //       timestamp: new Date().toISOString(),
+  //       messages: updatedMessages
+  //     });
+  //   }
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    const userMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date().toISOString()
-    };
+  //   localStorage.setItem('chatHistory', JSON.stringify(history));
+  // };
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    saveMessagesToStorage(updatedMessages);
+  // const handleSendMessage = async (e) => {
+  //   e.preventDefault();
+  //   if (!input.trim() || isLoading) return;
+  //   const userMessage = {
+  //     id: Date.now().toString(),
+  //     role: 'user',
+  //     content: input.trim(),
+  //     timestamp: new Date().toISOString()
+  //   };
 
-    setInput('');
-    setIsLoading(true);
+  //   const updatedMessages = [...messages, userMessage];
+  //   setMessages(updatedMessages);
+  //   saveMessagesToStorage(updatedMessages);
 
-    await fetch('/api/chat', {
-      method: "POST",
-      body: JSON.stringify({
-        messages: input.trim()
-      }),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }).then((res) => res.json()).then((data) => {
-      const aiResponse = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data?.content,
-        timestamp: new Date().toISOString()
-      };
+  //   setInput('');
+  //   setIsLoading(true);
 
-      const finalMessages = [...updatedMessages, aiResponse];
-      setMessages(finalMessages);
-      saveMessagesToStorage(finalMessages);
-      setIsLoading(false);
-    }).catch((error) => {
-      console.error('Error fetching AI response:', error);
-      setIsLoading(false);
-    });
-  };
+  //   await fetch('/api/chat', {
+  //     method: "POST",
+  //     body: JSON.stringify({
+  //       messages: input.trim()
+  //     }),
+  //     headers: {
+  //       'Content-Type': 'application/json'
+  //     }
+  //   }).then((res) => res.json()).then((data) => {
+  //     const aiResponse = {
+  //       id: (Date.now() + 1).toString(),
+  //       role: 'assistant',
+  //       content: data?.content,
+  //       timestamp: new Date().toISOString()
+  //     };
+
+  //     const finalMessages = [...updatedMessages, aiResponse];
+  //     setMessages(finalMessages);
+  //     saveMessagesToStorage(finalMessages);
+  //     setIsLoading(false);
+  //   }).catch((error) => {
+  //     console.error('Error fetching AI response:', error);
+  //     setIsLoading(false);
+  //   });
+  // };
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // useChat will handle the submission
+
+    if (!input.trim()) return;
+
+    await sendMessage({
+      role: 'user',
+      content: input,
+    });
+
+    setInput(''); // clear input after send
   };
+
 
   return (
     <div className="flex-1 flex flex-col bg-gray-950">
@@ -143,7 +175,7 @@ export default function ChatInterface({ chatId }) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
-        {messages.length === 0 ? (
+        {messages?.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             {/* Gradient Circle */}
             <div className="relative mb-8">
@@ -206,7 +238,7 @@ export default function ChatInterface({ chatId }) {
             />
             <button
               type="submit"
-              disabled={!input.trim() || isLoading}
+              disabled={!input?.trim() || isLoading}
               className="bg-green-600 hover:bg-green-700 text-white p-4 rounded-full transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-5 h-5" />
