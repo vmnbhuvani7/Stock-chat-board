@@ -183,6 +183,101 @@ export default function ChatInterface({ chatId }) {
   };
 
 
+  const renderReactMarkDown = (content) => {
+    return <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeRaw]}
+      components={{
+        h1: ({ children }) => (
+          <h1 className="text-white font-bold text-lg mb-3 mt-4">
+            {children}
+          </h1>
+        ),
+        h2: ({ children }) => (
+          <h2 className="text-white font-bold text-base mb-2 mt-3">
+            {children}
+          </h2>
+        ),
+        h3: ({ children }) => (
+          <h3 className="text-green-400 font-semibold text-sm mb-2">
+            {children}
+          </h3>
+        ),
+        p: ({ children }) => (
+          <p className="mb-2 text-gray-200 leading-relaxed">{children}</p>
+        ),
+        strong: ({ children }) => (
+          <strong className="text-white font-bold">{children}</strong>
+        ),
+        em: ({ children }) => (
+          <em className="text-green-300 italic">{children}</em>
+        ),
+        ul: ({ children }) => (
+          <ul className="list-disc list-inside mb-3 text-gray-200 ml-2">
+            {children}
+          </ul>
+        ),
+        ol: ({ children }) => (
+          <ol className="list-decimal list-inside mb-3 text-gray-200 ml-2">
+            {children}
+          </ol>
+        ),
+        li: ({ children }) => (
+          <li className="mb-1 text-gray-200">{children}</li>
+        ),
+        code: ({ inline, children }) =>
+          inline ? (
+            <code className="bg-gray-900 px-2 py-0.5 rounded text-green-400 text-xs font-mono">
+              {children}
+            </code>
+          ) : (
+            <code className="block bg-gray-900 p-4 rounded-lg text-green-400 text-sm font-mono overflow-x-auto my-2 border border-gray-700">
+              {children}
+            </code>
+          ),
+        pre: ({ children }) => (
+          <pre className="bg-gray-900 p-4 rounded-lg overflow-x-auto my-3 border border-gray-700">
+            {children}
+          </pre>
+        ),
+        blockquote: ({ children }) => (
+          <blockquote className="border-l-4 border-green-500 pl-4 py-2 my-3 text-gray-300 bg-gray-800/30 rounded-r">
+            {children}
+          </blockquote>
+        ),
+        table: ({ children }) => (
+          <div className="overflow-x-auto rounded-lg border border-gray-700 my-4">
+            <table className="w-full border-collapse bg-gray-900 text-sm">
+              {children}
+            </table>
+          </div>
+        ),
+        thead: ({ children }) => (
+          <thead className="bg-gradient-to-r from-gray-700 to-gray-800 sticky top-0">
+            {children}
+          </thead>
+        ),
+        tbody: ({ children }) => <tbody>{children}</tbody>,
+        tr: ({ children }) => (
+          <tr className="border-b border-gray-700 hover:bg-gray-800/50 transition-colors">
+            {children}
+          </tr>
+        ),
+        th: ({ children }) => (
+          <th className="px-4 py-3 text-left text-white font-bold border-b border-gray-600 text-xs uppercase tracking-wider bg-gray-700/50">
+            {children}
+          </th>
+        ),
+        td: ({ children }) => (
+          <td className="px-4 py-3 text-gray-200 border-b border-gray-700">
+            {children}
+          </td>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  }
   return (
     <div className="flex-1 flex flex-col bg-gray-950">
       {/* Header */}
@@ -257,38 +352,36 @@ export default function ChatInterface({ chatId }) {
                   className={`flex ${message?.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-2xl px-6 py-4 rounded-2xl ${message?.role === 'user'
+                    className={`max-w-3xl px-6 py-4 rounded-2xl ${message?.role === 'user'
                       ? 'bg-green-600 text-white'
                       : 'bg-gray-800 text-gray-100 border border-gray-700'
                       }`}
                   >
                     <div
-                      className="prose prose-invert prose-sm max-w-none
-                                    [&_table]:w-full [&_table]:border-collapse [&_table]:my-3 [&_table]:text-sm
-                                    [&_th]:border [&_th]:border-gray-600 [&_th]:px-4 [&_th]:py-2 [&_th]:bg-gray-700 [&_th]:text-gray-200 [&_th]:font-semibold [&_th]:text-left
-                                    [&_td]:border [&_td]:border-gray-600 [&_td]:px-4 [&_td]:py-2 [&_td]:text-gray-200
-                                    [&_tr:nth-child(even)_td]:bg-gray-700/30
-                                    [&_tr:hover_td]:bg-gray-600/30"
+                      className="text-gray-100 
+                  [&_h1]:text-white [&_h1]:font-bold [&_h1]:text-lg [&_h1]:mb-3
+                  [&_h2]:text-white [&_h2]:font-bold [&_h2]:text-base [&_h2]:mb-2 [&_h2]:mt-3
+                  [&_h3]:text-green-400 [&_h3]:font-semibold [&_h3]:text-sm [&_h3]:mb-2
+                  [&_p]:mb-2 [&_p]:text-gray-200 [&_p]:leading-relaxed
+                  [&_strong]:text-white [&_strong]:font-bold
+                  [&_em]:text-green-300 [&_em]:italic
+                  [&_ul]:list-disc [&_ul]:list-inside [&_ul]:mb-3 [&_ul]:text-gray-200
+                  [&_ol]:list-decimal [&_ol]:list-inside [&_ol]:mb-3 [&_ol]:text-gray-200
+                  [&_li]:mb-1 [&_li]:text-gray-200
+                  [&_code]:bg-gray-900 [&_code]:px-2 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-green-400 [&_code]:text-xs [&_code]:font-mono
+                  [&_pre]:bg-gray-900 [&_pre]:p-4 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:mb-3 [&_pre]:border [&_pre]:border-gray-700
+                  [&_pre_code]:text-green-400 [&_pre_code]:text-sm [&_pre_code]:font-mono
+                  [&_blockquote]:border-l-4 [&_blockquote]:border-green-500 [&_blockquote]:pl-4 [&_blockquote]:py-2 [&_blockquote]:my-3 [&_blockquote]:text-gray-300
+                  [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:bg-gray-900 [&_table]:rounded-lg [&_table]:overflow-hidden [&_table]:text-sm
+                  [&_thead]:bg-gradient-to-r [&_thead]:from-gray-700 [&_thead]:to-gray-800
+                  [&_th]:px-4 [&_th]:py-3 [&_th]:text-left [&_th]:text-white [&_th]:font-bold [&_th]:border-b [&_th]:border-gray-600 [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider
+                  [&_tbody_tr]:border-b [&_tbody_tr]:border-gray-700 [&_tbody_tr:hover]:bg-gray-800/50 [&_tbody_tr:last-child]:border-b-0
+                  [&_td]:px-4 [&_td]:py-3 [&_td]:text-gray-200 [&_td]:border-b [&_td]:border-gray-700
+                  [&_td_strong]:text-white [&_td_strong]:font-bold
+                  [&_tbody_tr:nth-child(odd)_td]:bg-gray-800/20
+                  [&_tbody_tr:nth-child(even)_td]:bg-gray-800/40"
                     >
-                      <ReactMarkdown
-                        // className="whitespace-pre-wrap prose prose-invert max-w-none"
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                      // components={{
-                      //   p: ({ children }) => <p className="text-gray-100 mb-2">{children}</p>,
-                      //   strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
-                      //   ul: ({ children }) => <ul className="list-disc list-inside mb-2 text-gray-100">{children}</ul>,
-                      //   ol: ({ children }) => <ol className="list-decimal list-inside mb-2 text-gray-100">{children}</ol>,
-                      //   li: ({ children }) => <li className="mb-1">{children}</li>,
-                      //   code: ({ inline, children }) =>
-                      //     inline
-                      //       ? <code className="bg-gray-700 px-1 py-0.5 rounded text-green-400 text-sm">{children}</code>
-                      //       : <code className="block bg-gray-700 p-2 rounded text-green-400 text-sm overflow-x-auto">{children}</code>,
-                      //   pre: ({ children }) => <pre className="bg-gray-800 p-3 rounded-lg overflow-x-auto mb-2">{children}</pre>,
-                      // }}
-                      >
-                        {messageContent}
-                      </ReactMarkdown>
+                      {renderReactMarkDown(messageContent)}
                     </div>
                   </div>
                 </div>
@@ -311,12 +404,7 @@ export default function ChatInterface({ chatId }) {
               <div className="flex justify-start animate-fadeIn">
                 <div className="max-w-3xl px-4 py-3 rounded-2xl bg-gray-800/90 border border-gray-700/30 shadow-lg">
                   <div className="prose prose-invert prose-sm max-w-none text-gray-200">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeRaw]}
-                    >
-                      {currentTypingMessage}
-                    </ReactMarkdown>
+                    {renderReactMarkDown(currentTypingMessage)}
                   </div>
 
                   <div className="flex items-center gap-2 mt-2 text-gray-400 text-xs">
