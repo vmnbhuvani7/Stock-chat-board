@@ -3,11 +3,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send, User } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 
 export default function ChatInterface({ chatId }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const [currentTypingMessage, setCurrentTypingMessage] = useState("");
+
   const messagesEndRef = useRef(null);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,7 +58,7 @@ export default function ChatInterface({ chatId }) {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isThinking) return;
     const userMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -66,7 +71,7 @@ export default function ChatInterface({ chatId }) {
     saveMessagesToStorage(updatedMessages);
 
     setInput('');
-    setIsLoading(true);
+    setIsThinking(true);
 
     try {
       const res = await fetch('/api/chat', {
@@ -78,22 +83,98 @@ export default function ChatInterface({ chatId }) {
           'Content-Type': 'application/json'
         }
       });
-      const data = await res.json();
+      const reader = res.body.getReader();
+      let aiReply = "";
+      let wordQueue = [];
+      let isProcessingQueue = false;
 
-      const aiResponse = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data?.content || 'Sorry, an error occurred.',
-        timestamp: new Date().toISOString()
+      const processQueue = () => {
+        if (isProcessingQueue) return;
+        isProcessingQueue = true;
+
+        const tick = () => {
+          if (wordQueue.length === 0) {
+            isProcessingQueue = false;
+            return;
+          }
+          const next = wordQueue.shift();
+          aiReply += next;
+          setCurrentTypingMessage(aiReply);
+          setTimeout(tick, 18);
+        };
+
+        tick();
       };
 
-      const finalMessages = [...updatedMessages, aiResponse];
-      setMessages(finalMessages);
-      saveMessagesToStorage(finalMessages);
+      setIsThinking(false);
+      setIsTyping(true);
+      setCurrentTypingMessage("");
+
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          const waitForQueue = () => {
+            if (wordQueue.length > 0 || isProcessingQueue) {
+              setTimeout(waitForQueue, 20);
+            } else {
+              setIsTyping(false);
+              setCurrentTypingMessage("");
+              const aiResponse = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: aiReply,
+                timestamp: new Date().toISOString()
+              };
+              setMessages((prev) => [...prev, aiResponse]);
+              saveMessagesToStorage((prev) => [...prev, aiResponse]);
+            }
+          };
+
+          waitForQueue();
+          break;
+        }
+
+        const raw = decoder.decode(value, { stream: true });
+        const lines = raw.split("\n").filter(Boolean);
+        for (const line of lines) {
+          const prefix = line[0];
+          const payload = line.slice(2);
+
+          try {
+            if (prefix === "0") {
+              // Text chunk
+              const text = JSON.parse(payload);
+              const tokens = text.split(/(\s+)/);
+              wordQueue.push(...tokens);
+              processQueue();
+
+            } else if (prefix === "3") {
+              // Error sent from server
+              const errMsg = JSON.parse(payload);
+              throw new Error(errMsg);
+            }
+          } catch (err) {
+            console.warn("Stream parse error:", err);
+          }
+        }
+      }
+
     } catch (error) {
+      setIsThinking(false);
+      setIsTyping(false);
+      setCurrentTypingMessage("");
+      const aiResponse = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: "Sorry, something went wrong.",
+        timestamp: new Date().toISOString()
+      };
+      setMessages((prev) => [...prev, aiResponse]);
+      saveMessagesToStorage((prev) => [...prev, aiResponse]);
       console.error('Error fetching AI response:', error);
     } finally {
-      setIsLoading(false);
+      setIsThinking(false);
     }
   };
 
@@ -139,7 +220,7 @@ export default function ChatInterface({ chatId }) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-8 py-6">
-        {messages?.length === 0 ? (
+        {messages?.length === 0 && !isThinking && !isTyping ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             {/* Gradient Circle */}
             <div className="relative mb-8">
@@ -202,12 +283,38 @@ export default function ChatInterface({ chatId }) {
                 </div>
               );
             })}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-800 border border-gray-700 rounded-2xl px-6 py-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-400"></div>
-                    <p className="text-gray-400">Thinking...</p>
+            {isThinking && (
+              <div className="flex justify-start animate-fadeIn">
+                <div className="max-w-3xl px-4 py-3 rounded-2xl bg-gray-800/90 border border-gray-700/30 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-blue-300">
+                      AI is thinking...
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isTyping && (
+              <div className="flex justify-start animate-fadeIn">
+                <div className="max-w-3xl px-4 py-3 rounded-2xl bg-gray-800/90 border border-gray-700/30 shadow-lg">
+                  <div className="prose prose-invert prose-sm max-w-none text-gray-200">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeRaw]}
+                    >
+                      {currentTypingMessage}
+                    </ReactMarkdown>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2 text-gray-400 text-xs">
+                    <span>AI is typing</span>
+                    <div className="flex gap-1">
+                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse"></span>
+                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse delay-150"></span>
+                      <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse delay-300"></span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -226,11 +333,11 @@ export default function ChatInterface({ chatId }) {
               onChange={handleInputChange}
               placeholder="Type your message..."
               className="flex-1 px-6 py-4 bg-gray-800 border border-gray-700 rounded-full text-white placeholder-gray-400 focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition duration-200"
-              disabled={isLoading}
+              disabled={isThinking}
             />
             <button
               type="submit"
-              disabled={!input?.trim() || isLoading}
+              disabled={!input?.trim() || isThinking}
               className="bg-green-600 hover:bg-green-700 text-white p-4 rounded-full transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Send className="w-5 h-5" />

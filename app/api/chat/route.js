@@ -30,24 +30,33 @@ export async function POST(request) {
     const { messages } = await request.json();
 
     const result = await stockAgent.stream({ messages });
-  
-    let finalText = '';
 
-    for await (const chunk of result?.textStream) {
-      if (chunk) {
-        finalText += chunk;
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        for await (const chunk of result.textStream) {
+          if (chunk) {
+            const payload = `0:${JSON.stringify(chunk)}\n`;
+            controller.enqueue(encoder.encode(payload));
+          }
+        }
+        controller.close();
       }
-    }
+    });
 
-    return Response.json({
-      role: 'assistant',
-      content: finalText
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked"
+      }
     });
 
   } catch (error) {
     console.error('Chat API Error:', error);
-    return Response.json(
-      { error: 'Failed to process message' },
+
+    return new Response(
+      `3:${JSON.stringify("Failed to process message")}\n`,
       { status: 500 }
     );
   }
