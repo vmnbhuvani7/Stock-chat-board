@@ -262,23 +262,34 @@ export default function ChatInterface({ chatId }) {
                       : 'bg-gray-800 text-gray-100 border border-gray-700'
                       }`}
                   >
-                    <ReactMarkdown
-                      // className="whitespace-pre-wrap prose prose-invert max-w-none"
-                      components={{
-                        p: ({ children }) => <p className="text-gray-100 mb-2">{children}</p>,
-                        strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
-                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 text-gray-100">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 text-gray-100">{children}</ol>,
-                        li: ({ children }) => <li className="mb-1">{children}</li>,
-                        code: ({ inline, children }) =>
-                          inline
-                            ? <code className="bg-gray-700 px-1 py-0.5 rounded text-green-400 text-sm">{children}</code>
-                            : <code className="block bg-gray-700 p-2 rounded text-green-400 text-sm overflow-x-auto">{children}</code>,
-                        pre: ({ children }) => <pre className="bg-gray-800 p-3 rounded-lg overflow-x-auto mb-2">{children}</pre>,
-                      }}
+                    <div
+                      className="prose prose-invert prose-sm max-w-none
+                                    [&_table]:w-full [&_table]:border-collapse [&_table]:my-3 [&_table]:text-sm
+                                    [&_th]:border [&_th]:border-gray-600 [&_th]:px-4 [&_th]:py-2 [&_th]:bg-gray-700 [&_th]:text-gray-200 [&_th]:font-semibold [&_th]:text-left
+                                    [&_td]:border [&_td]:border-gray-600 [&_td]:px-4 [&_td]:py-2 [&_td]:text-gray-200
+                                    [&_tr:nth-child(even)_td]:bg-gray-700/30
+                                    [&_tr:hover_td]:bg-gray-600/30"
                     >
-                      {messageContent}
-                    </ReactMarkdown>
+                      <ReactMarkdown
+                        // className="whitespace-pre-wrap prose prose-invert max-w-none"
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                      // components={{
+                      //   p: ({ children }) => <p className="text-gray-100 mb-2">{children}</p>,
+                      //   strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+                      //   ul: ({ children }) => <ul className="list-disc list-inside mb-2 text-gray-100">{children}</ul>,
+                      //   ol: ({ children }) => <ol className="list-decimal list-inside mb-2 text-gray-100">{children}</ol>,
+                      //   li: ({ children }) => <li className="mb-1">{children}</li>,
+                      //   code: ({ inline, children }) =>
+                      //     inline
+                      //       ? <code className="bg-gray-700 px-1 py-0.5 rounded text-green-400 text-sm">{children}</code>
+                      //       : <code className="block bg-gray-700 p-2 rounded text-green-400 text-sm overflow-x-auto">{children}</code>,
+                      //   pre: ({ children }) => <pre className="bg-gray-800 p-3 rounded-lg overflow-x-auto mb-2">{children}</pre>,
+                      // }}
+                      >
+                        {messageContent}
+                      </ReactMarkdown>
+                    </div>
                   </div>
                 </div>
               );
