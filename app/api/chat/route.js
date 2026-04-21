@@ -1,5 +1,6 @@
 import { generateText, streamText } from 'ai';
 import { createMistral } from '@ai-sdk/mistral';
+import { stockAgent } from "@/components/Agent/StockAgent";
 
 const mistral = createMistral({
   apiKey: process.env.MISTRAL_API_KEY,
@@ -28,51 +29,23 @@ export async function POST(request) {
   try {
     const { messages } = await request.json();
 
-    // Convert messages with parts array to standard format
-    const formattedMessages = messages?.map(msg => {
-      if (msg?.parts && Array.isArray(msg?.parts)) {
-        const textPart = msg?.parts.find(part => part.type === 'text');
-        return {
-          id: msg?.id,
-          role: msg?.role,
-          content: textPart?.text || msg?.content || ''
-        };
+    const result =await stockAgent.stream({ messages });
+  
+    let finalText = '';
+
+    for await (const chunk of result?.textStream) {
+      if (chunk) {
+        finalText += chunk;
       }
-      return {
-        id: msg?.id,
-        role: msg?.role,
-        content: msg?.content || ''
-      };
-    });
+    }
 
-    console.log("🚀 ~ formattedMessages:", formattedMessages);
-
-    const result = streamText({
-      model: mistral('mistral-large-latest'),
-      messages: formattedMessages,
+     return new Response(finalText, {
+      headers: { 'Content-Type': 'text/plain' }
     });
-    
-    return result.toUIMessageStreamResponse();
 
   } catch (error) {
     console.error('Chat API Error:', error);
-    
-    // Use fallback response when API fails
-    const lastMessage = messages[messages.length - 1];
-    let userMessage = '';
-    
-    if (lastMessage) {
-      if (lastMessage.parts && Array.isArray(lastMessage.parts)) {
-        const textPart = lastMessage.parts.find(part => part.type === 'text');
-        userMessage = textPart?.text || '';
-      } else {
-        userMessage = lastMessage.content || '';
-      }
-    }
-    
-    const fallbackResponse = getFallbackResponse(userMessage);
-    
-    return new Response(fallbackResponse, {
+    return new Response("messages", {
       headers: { 'Content-Type': 'text/plain' }
     });
   }
