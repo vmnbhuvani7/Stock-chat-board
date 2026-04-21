@@ -29,7 +29,7 @@ export async function POST(request) {
   try {
     const { messages } = await request.json();
 
-    const result =await stockAgent.stream({ messages });
+    const result = await stockAgent.stream({ messages });
   
     let finalText = '';
 
@@ -39,15 +39,17 @@ export async function POST(request) {
       }
     }
 
-     return new Response(finalText, {
-      headers: { 'Content-Type': 'text/plain' }
+    return Response.json({
+      role: 'assistant',
+      content: finalText
     });
 
   } catch (error) {
     console.error('Chat API Error:', error);
-    return new Response("messages", {
-      headers: { 'Content-Type': 'text/plain' }
-    });
+    return Response.json(
+      { error: 'Failed to process message' },
+      { status: 500 }
+    );
   }
 }
 

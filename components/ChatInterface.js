@@ -2,30 +2,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Send, User } from 'lucide-react';
-import { useChat } from '@ai-sdk/react';
 import ReactMarkdown from 'react-markdown';
 
 export default function ChatInterface({ chatId }) {
-  const { messages, status, error, sendMessage } = useChat({
-    api: '/api/chat',
-    id: chatId || undefined,
-    // body: {
-    //   resourceId: 'anonymous',
-    //   // resourceId: currentUser?.id || 'anonymous',
-    // },
-    onFinish: async () => {
-      window.dispatchEvent(new Event('chatHistoryUpdated'))
-      // if (!hasRoutedRef.current && chatIdRef.current) {
-      //   hasRoutedRef.current = true
-      //   router.replace(/chat/${chatIdRef.current})
-      // }
-    },
-    onError: e => console.error("inside error 22", e),
-  })
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
-  const isLoading = status === 'submitted' || status === 'streaming';
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -34,99 +17,88 @@ export default function ChatInterface({ chatId }) {
     scrollToBottom();
   }, [messages]);
 
-  // useEffect(() => {
-  //   // Load user name and chat messages from localStorage
-  //   const name = localStorage.getItem('userName');
-  //   const chatHistory = localStorage.getItem('chatHistory');
+  useEffect(() => {
+    // Load chat messages from localStorage
+    const chatHistory = localStorage.getItem('chatHistory');
 
-  //   if (name) setUserName(name);
-  //   if (chatHistory) {
-  //     const history = JSON.parse(chatHistory);
-  //     const currentChat = history.find(chat => chat.id === chatId);
-  //     if (currentChat) {
-  //       setMessages(currentChat.messages || []);
-  //     }
-  //   }
-  // }, [chatId]);
+    if (chatHistory) {
+      const history = JSON.parse(chatHistory);
+      const currentChat = history.find(chat => chat.id === chatId);
+      if (currentChat) {
+        setMessages(currentChat.messages || []);
+      }
+    }
+  }, [chatId]);
 
-  // const saveMessagesToStorage = (updatedMessages) => {
-  //   const chatHistory = localStorage.getItem('chatHistory');
-  //   let history = chatHistory ? JSON.parse(chatHistory) : [];
+  const saveMessagesToStorage = (updatedMessages) => {
+    const chatHistory = localStorage.getItem('chatHistory');
+    let history = chatHistory ? JSON.parse(chatHistory) : [];
 
-  //   const chatIndex = history.findIndex(chat => chat.id === chatId);
-  //   if (chatIndex >= 0) {
-  //     history[chatIndex].messages = updatedMessages;
-  //     history[chatIndex].timestamp = new Date().toISOString();
-  //   } else {
-  //     history.unshift({
-  //       id: chatId,
-  //       title: updatedMessages.length > 0 ? updatedMessages[0].content.substring(0, 30) + '...' : 'New Chat',
-  //       timestamp: new Date().toISOString(),
-  //       messages: updatedMessages
-  //     });
-  //   }
+    const chatIndex = history.findIndex(chat => chat.id === chatId);
+    if (chatIndex >= 0) {
+      history[chatIndex].messages = updatedMessages;
+      history[chatIndex].timestamp = new Date().toISOString();
+    } else {
+      history.unshift({
+        id: chatId,
+        title: updatedMessages.length > 0 ? updatedMessages[0].content.substring(0, 30) + '...' : 'New Chat',
+        timestamp: new Date().toISOString(),
+        messages: updatedMessages
+      });
+    }
 
-  //   localStorage.setItem('chatHistory', JSON.stringify(history));
-  // };
+    localStorage.setItem('chatHistory', JSON.stringify(history));
+    window.dispatchEvent(new Event('chatHistoryUpdated'));
+  };
 
-  // const handleSendMessage = async (e) => {
-  //   e.preventDefault();
-  //   if (!input.trim() || isLoading) return;
-  //   const userMessage = {
-  //     id: Date.now().toString(),
-  //     role: 'user',
-  //     content: input.trim(),
-  //     timestamp: new Date().toISOString()
-  //   };
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    const userMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input.trim(),
+      timestamp: new Date().toISOString()
+    };
 
-  //   const updatedMessages = [...messages, userMessage];
-  //   setMessages(updatedMessages);
-  //   saveMessagesToStorage(updatedMessages);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    saveMessagesToStorage(updatedMessages);
 
-  //   setInput('');
-  //   setIsLoading(true);
+    setInput('');
+    setIsLoading(true);
 
-  //   await fetch('/api/chat', {
-  //     method: "POST",
-  //     body: JSON.stringify({
-  //       messages: input.trim()
-  //     }),
-  //     headers: {
-  //       'Content-Type': 'application/json'
-  //     }
-  //   }).then((res) => res.json()).then((data) => {
-  //     const aiResponse = {
-  //       id: (Date.now() + 1).toString(),
-  //       role: 'assistant',
-  //       content: data?.content,
-  //       timestamp: new Date().toISOString()
-  //     };
+    try {
+      const res = await fetch('/api/chat', {
+        method: "POST",
+        body: JSON.stringify({
+          messages: updatedMessages
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await res.json();
 
-  //     const finalMessages = [...updatedMessages, aiResponse];
-  //     setMessages(finalMessages);
-  //     saveMessagesToStorage(finalMessages);
-  //     setIsLoading(false);
-  //   }).catch((error) => {
-  //     console.error('Error fetching AI response:', error);
-  //     setIsLoading(false);
-  //   });
-  // };
+      const aiResponse = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data?.content || 'Sorry, an error occurred.',
+        timestamp: new Date().toISOString()
+      };
+
+      const finalMessages = [...updatedMessages, aiResponse];
+      setMessages(finalMessages);
+      saveMessagesToStorage(finalMessages);
+    } catch (error) {
+      console.error('Error fetching AI response:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!input.trim()) return;
-
-    await sendMessage({
-      role: 'user',
-      content: input,
-    });
-
-    setInput(''); // clear input after send
   };
 
 
@@ -247,7 +219,7 @@ export default function ChatInterface({ chatId }) {
 
       {/* Input */}
       <div className="px-8 py-6">
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
+        <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto">
           <div className="flex items-center space-x-4">
             <input
               value={input}
