@@ -8,12 +8,13 @@ export const getStockData = tool({
   parameters: z.object({
     symbol: z
       .string()
-      .min(1, "Symbol is required — never call with empty args")
-      .describe("Ticker symbol e.g. INFY.BO, RELIANCE.NS, AAPL"),
+      .min(1, "SYMBOL IS MANDATORY - NEVER LEAVE UNDEFINED")
+      .describe("REQUIRED: Ticker symbol (e.g. AAPL, RELIANCE.NS). MUST NOT BE UNDEFINED."),
   }),
   execute: async ({ symbol }) => {
-    if (!symbol || symbol.trim() === "") {
-      return { error: "Symbol is required. Call again with {\"symbol\": \"TICKER.BO\"}" };
+    console.log("🛠 Call Tool: getStockData", { symbol });
+    if (!symbol) {
+      return { error: "Symbol is required. You MUST provide a 'symbol' argument." };
     }
 
     try {

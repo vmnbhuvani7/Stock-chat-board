@@ -43,12 +43,9 @@ export default function Sidebar({ currentChatId }) {
   };
 
   const deleteChat = (chatId, e) => {
-    console.log("🚀 ~ deleteChat ~ chatId:", chatId)
     e.stopPropagation();
 
     const updatedHistory = chatHistory.filter(chat => chat.id !== chatId);
-    console.log("🚀 ~ deleteChat ~ chatHistory:", chatHistory)
-    console.log("🚀 ~ deleteChat ~ updatedHistory:", updatedHistory)
     setChatHistory(updatedHistory);
     localStorage.setItem('chatHistory', JSON.stringify(updatedHistory));
     router.push(`/chat`);

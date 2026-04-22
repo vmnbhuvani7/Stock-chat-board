@@ -34,9 +34,7 @@ function calculateFourMScore(data) {
 }
 
 export async function fetchStockData(symbol) {
-  console.log("🚀 ~ fetchStockData ~ symbol:", symbol)
   const quote = await yahooFinance.quote(symbol);
-  console.log("🚀 ~ fetchStockData ~ quote:", quote)
 
   const time =
     quote.regularMarketTime > 1e12
@@ -72,4 +70,36 @@ export async function fetchStockData(symbol) {
     marginOfSafety: mosPercent ? `${mosPercent}%` : null,
     fourMScore: `${fourMScore}/100`,
   };
+}
+
+export async function fetchStockChartData(symbol, range = '1mo', interval = '1d') {
+  try {
+    const now = new Date();
+    let period1;
+
+    switch (range) {
+      case '1d': period1 = new Date(now.getTime() - 24 * 60 * 60 * 1000); break;
+      case '5d': period1 = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000); break;
+      case '1mo': period1 = new Date(new Date().setMonth(now.getMonth() - 1)); break;
+      case '3mo': period1 = new Date(new Date().setMonth(now.getMonth() - 3)); break;
+      case '6mo': period1 = new Date(new Date().setMonth(now.getMonth() - 6)); break;
+      case '1y': period1 = new Date(new Date().setFullYear(now.getFullYear() - 1)); break;
+      case '2y': period1 = new Date(new Date().setFullYear(now.getFullYear() - 2)); break;
+      case '5y': period1 = new Date(new Date().setFullYear(now.getFullYear() - 5)); break;
+      case '10y': period1 = new Date(new Date().setFullYear(now.getFullYear() - 10)); break;
+      case 'ytd': period1 = new Date(now.getFullYear(), 0, 1); break;
+      case 'max': period1 = new Date(0); break;
+      default: period1 = new Date(new Date().setMonth(now.getMonth() - 1));
+    }
+
+    const queryOptions = { 
+      period1, 
+      period2: now, 
+      interval 
+    };
+    const chart = await yahooFinance.chart(symbol, queryOptions);
+    return chart;
+  } catch (err) {
+    throw err;
+  }
 }
